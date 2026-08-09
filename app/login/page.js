@@ -23,16 +23,20 @@ export default function LoginPage() {
     setLoading(true);
     try {
       if (mode === "new") {
-        const { error: err } = await supabase.auth.signUp({ email, password });
+        const { data, error: err } = await supabase.auth.signUp({ email, password });
         if (err) throw err;
-        setInfo("პროფილი შექმნილია. თუ Supabase-ში email confirmation ჩართული აქვს, გადაამოწმე ფოსტა.");
+        if (data.session) {
+          router.push("/");
+        } else {
+          setInfo("გაგზავნილია დამადასტურებელი წერილი შენს ფოსტაზე — გახსენი და დააჭირე ბმულს, შემდეგ დაბრუნდი და შედი ანგარიშში.");
+        }
       } else {
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) throw err;
         router.push("/");
       }
     } catch (e) {
-      setError(e.message || "შეცდომა, სცადე ისევ.");
+      setError(e.message === "Invalid login credentials" ? "ემაილი ან პაროლი არასწორია" : "შეცდომა, სცადე ისევ.");
     } finally {
       setLoading(false);
     }
@@ -53,7 +57,7 @@ export default function LoginPage() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 28 }}>
           <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 26, color: TOKENS.chalk, letterSpacing: 1 }}>🔔 BOXFUEL</span>
         </div>
-        <div style={{ background: TOKENS.surface, border: `1px solid ${TOKENS.line}`, borderRadius: 20, padding: 26 }}>
+        <div style={{ background: TOKENS.surface, border: `1px solid ${TOKENS.line}`, borderRadius: 20, padding: 26, boxShadow: "0 12px 40px -12px rgba(0,0,0,0.5)" }}>
           <div style={{ display: "flex", gap: 6, marginBottom: 20, background: TOKENS.surface2, borderRadius: 10, padding: 4 }}>
             {[{ k: "in", l: "შესვლა" }, { k: "new", l: "ახალი პროფილი" }].map((m) => (
               <button

@@ -18,6 +18,10 @@ html, body {
   outline: none;
   border-color: #E4572E;
 }
+/* Prevent iOS Safari auto-zoom on focus by keeping form fields at 16px+ */
+input, select, textarea {
+  font-size: 16px;
+}
 .bf-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -26,5 +30,56 @@ html, body {
 @media (min-width: 860px) {
   .bf-grid {
     grid-template-columns: 320px 1fr;
+  }
+}
+
+/* Top pill nav: desktop/tablet only */
+.bf-topnav {
+  display: flex;
+}
+@media (max-width: 760px) {
+  .bf-topnav {
+    display: none;
+  }
+}
+
+/* Fixed bottom nav: mobile only */
+.bf-bottomnav {
+  display: none;
+}
+@media (max-width: 760px) {
+  .bf-bottomnav {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(28, 26, 21, 0.94);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid #38352C;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    z-index: 30;
+  }
+}
+
+/* Leave room above the fixed bottom nav so content isn't hidden behind it */
+@media (max-width: 760px) {
+  .bf-content {
+    padding-bottom: 90px !important;
+  }
+}
+
+/* Email address in header: hide on narrow screens to reduce clutter */
+@media (max-width: 640px) {
+  .bf-email {
+    display: none;
+  }
+}
+
+/* Secondary stat columns (protein/water) in the stats list: hide on very
+   narrow phones so the row doesn't feel cramped; calories + bar stay */
+@media (max-width: 420px) {
+  .bf-stat-extra {
+    display: none;
   }
 }
