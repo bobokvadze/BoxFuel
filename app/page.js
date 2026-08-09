@@ -8,7 +8,7 @@ import Ring from "../components/Ring";
 
 const NAV = [
   { k: "home", icon: Flame, l: "დღეს" },
-  { k: "scan", icon: Camera, l: "სკანი" },
+  { k: "scan", icon: Camera, l: "დასკან." },
   { k: "water", icon: Droplet, l: "წყალი" },
   { k: "stats", icon: BarChart3, l: "სტატ." },
   { k: "advice", icon: MessageCircle, l: "რჩევა" },
@@ -481,7 +481,7 @@ export default function Dashboard() {
               ))}
             </div>
             <button className="bf-btn" onClick={() => addWater(-250)} style={{ width: "100%", background: "transparent", border: `1px solid ${TOKENS.line}`, borderRadius: 10, padding: "9px 0", color: TOKENS.muted, fontSize: 12 }}>
-              −250მლ (შესცორება)
+              −250მლ (შესწორება)
             </button>
           </div>
         )}
