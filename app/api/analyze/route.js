@@ -32,17 +32,32 @@ export async function POST(req) {
 
   const data = await res.json();
 
-  if (data.error) {
-    return Response.json({ error: data.error.message || "gemini_error" }, { status: 500 });
+  if (!res.ok || data.error) {
+    console.error("Gemini analyze error:", data.error || data);
+    return Response.json({ error: data.error?.message || "gemini_http_error" }, { status: 500 });
   }
 
-  const textOut = data?.candidates?.[0]?.content?.parts?.map((p) => p.text).filter(Boolean).join("\n") || "";
+  if (data.promptFeedback?.blockReason) {
+    return Response.json({ error: "blocked:" + data.promptFeedback.blockReason }, { status: 500 });
+  }
+
+  const candidate = data?.candidates?.[0];
+  if (!candidate) {
+    console.error("Gemini analyze: no candidate", data);
+    return Response.json({ error: "no_candidate" }, { status: 500 });
+  }
+
+  const textOut = candidate.content?.parts?.map((p) => p.text).filter(Boolean).join("\n") || "";
+  if (!textOut) {
+    return Response.json({ error: "empty_response" }, { status: 500 });
+  }
 
   try {
     const cleaned = textOut.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(cleaned);
     return Response.json(parsed);
   } catch (e) {
+    console.error("Gemini analyze: parse failed", textOut.slice(0, 300));
     return Response.json({ error: "parse_failed" }, { status: 500 });
   }
 }

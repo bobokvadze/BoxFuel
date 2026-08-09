@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Droplet, Dumbbell, MessageCircle, Loader2, Flame, Beef, X, Check, LogOut, User, BarChart3 } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
-import { TOKENS, todayKey } from "../lib/tokens";
+import { TOKENS, todayKey, computeGoals } from "../lib/tokens";
 import Ring from "../components/Ring";
 
 const NAV = [
@@ -16,12 +16,36 @@ const NAV = [
 
 const card = { background: TOKENS.surface, border: `1px solid ${TOKENS.line}`, borderRadius: 18, boxShadow: "0 4px 24px -8px rgba(0,0,0,0.35)" };
 
-function fileToBase64(file) {
+// Resize + re-encode the photo before it ever leaves the browser. Phone camera
+// photos are often 3-8MB, which can exceed serverless request-body limits and
+// silently fail. Shrinking to a sane max dimension fixes that and speeds up
+// the round-trip to Gemini.
+function compressImage(file, maxDim = 1024, quality = 0.82) {
   return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result.split(",")[1]);
-    r.onerror = reject;
-    r.readAsDataURL(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new window.Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else if (height >= width && height > maxDim) {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve({ b64: dataUrl.split(",")[1], mediaType: "image/jpeg", url: dataUrl });
+      };
+      img.onerror = () => reject(new Error("image_decode_failed"));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error("read_failed"));
+    reader.readAsDataURL(file);
   });
 }
 
@@ -36,6 +60,9 @@ export default function Dashboard() {
   const [rounds, setRounds] = useState(1);
   const [onboard, setOnboard] = useState(false);
   const [weightInput, setWeightInput] = useState("75");
+  const [heightInput, setHeightInput] = useState("175");
+  const [ageInput, setAgeInput] = useState("25");
+  const [genderInput, setGenderInput] = useState("male");
   const [goalInput, setGoalInput] = useState("recomp");
 
   const [scanImg, setScanImg] = useState(null);
@@ -73,8 +100,13 @@ export default function Dashboard() {
 
   const loadData = async (userId) => {
     const { data: goalRow } = await supabase.from("goals").select("*").eq("user_id", userId).maybeSingle();
-    if (goalRow) setGoals({ weight: goalRow.weight, calories: goalRow.calories, protein: goalRow.protein, water: goalRow.water });
-    else setOnboard(true);
+    if (goalRow) {
+      setGoals({ weight: goalRow.weight, calories: goalRow.calories, protein: goalRow.protein, water: goalRow.water });
+      if (goalRow.height) setHeightInput(String(goalRow.height));
+      if (goalRow.age) setAgeInput(String(goalRow.age));
+      if (goalRow.gender) setGenderInput(goalRow.gender);
+      setWeightInput(String(goalRow.weight));
+    } else setOnboard(true);
 
     const { data: logRow } = await supabase.from("logs").select("*").eq("user_id", userId).eq("date", todayKey()).maybeSingle();
     if (logRow) setLog({ date: logRow.date, foods: logRow.foods || [], water: logRow.water || 0 });
@@ -121,22 +153,20 @@ export default function Dashboard() {
   };
 
   const finishOnboard = () => {
-    const w = parseFloat(weightInput) || 75;
-    let calories, protein;
-    if (goalInput === "recomp") {
-      calories = Math.round(w * 27);
-      protein = Math.round(w * 1.9);
-    } else if (goalInput === "cut") {
-      calories = Math.round(w * 24);
-      protein = Math.round(w * 2.0);
-    } else {
-      calories = Math.round(w * 31);
-      protein = Math.round(w * 1.8);
-    }
-    const water = Math.round(w * 35);
-    saveGoals({ weight: w, calories, protein, water });
+    const preview = computeGoals({ weight: weightInput, height: heightInput, age: ageInput, gender: genderInput, goal: goalInput });
+    saveGoals({
+      weight: parseFloat(weightInput) || 75,
+      height: parseFloat(heightInput) || 175,
+      age: parseFloat(ageInput) || 25,
+      gender: genderInput,
+      calories: preview.calories,
+      protein: preview.protein,
+      water: preview.water,
+    });
     setOnboard(false);
   };
+
+  const goalPreview = computeGoals({ weight: weightInput, height: heightInput, age: ageInput, gender: genderInput, goal: goalInput });
 
   const totals = log.foods.reduce((a, f) => ({ calories: a.calories + f.calories, protein: a.protein + f.protein }), { calories: 0, protein: 0 });
 
@@ -147,8 +177,12 @@ export default function Dashboard() {
     if (!file) return;
     setScanError(null);
     setScanResult(null);
-    const b64 = await fileToBase64(file);
-    setScanImg({ b64, mediaType: file.type, url: URL.createObjectURL(file) });
+    try {
+      const compressed = await compressImage(file);
+      setScanImg(compressed);
+    } catch (err) {
+      setScanError("ფოტოს წაკითხვა ვერ მოხერხდა — სცადე სხვა ფოტო.");
+    }
   };
 
   const analyze = async () => {
@@ -161,11 +195,15 @@ export default function Dashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageBase64: scanImg.b64, mediaType: scanImg.mediaType }),
       });
-      if (!res.ok) throw new Error("analyze failed");
       const parsed = await res.json();
+      if (!res.ok || parsed.error) {
+        console.error("analyze error:", parsed.error);
+        setScanError("ვერ მოხერხდა ამოცნობა — სცადე უფრო ახლო/ნათელი ფოტო, ან სცადე ერთი წუთის შემდეგ.");
+        return;
+      }
       setScanResult(parsed);
     } catch (e) {
-      setScanError("ვერ მოხერხდა ამოცნობა. ცადე თავიდან ან სხვა ფოტოთი.");
+      setScanError("კავშირის შეცდომა — შეამოწმე ინტერნეტი და სცადე ისევ.");
     } finally {
       setScanLoading(false);
     }
@@ -234,7 +272,7 @@ export default function Dashboard() {
   return (
     <div style={{ background: TOKENS.bg, minHeight: "100vh" }}>
       {/* Header */}
-      <div style={{ borderBottom: `1px solid ${TOKENS.line}`, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, position: "sticky", top: 0, background: "rgba(16,15,12,0.92)", backdropFilter: "blur(10px)", zIndex: 20 }}>
+      <div style={{ borderBottom: `1px solid ${TOKENS.line}`, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, position: "sticky", top: 0, background: "rgba(14,13,11,0.92)", backdropFilter: "blur(10px)", zIndex: 20 }}>
         <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 19, color: TOKENS.chalk, letterSpacing: 0.5, whiteSpace: "nowrap" }}>🔔 BOXFUEL</span>
 
         <div className="bf-topnav" style={{ gap: 4, background: TOKENS.surface, borderRadius: 10, padding: 4 }}>
@@ -266,18 +304,51 @@ export default function Dashboard() {
       {/* Content */}
       <div className="bf-content" style={{ maxWidth: 1080, margin: "0 auto", padding: "22px 20px" }}>
         {onboard && (
-          <div style={{ ...card, border: `1px solid ${TOKENS.ember}`, padding: 20, marginBottom: 22, maxWidth: 420 }}>
-            <div style={{ color: TOKENS.chalk, fontFamily: "'Oswald', sans-serif", fontSize: 15, marginBottom: 12 }}>დავაყენოთ შენი მიზნები</div>
-            <label style={{ color: TOKENS.muted, fontSize: 11 }}>წონა (კგ)</label>
-            <input className="bf-input" value={weightInput} onChange={(e) => setWeightInput(e.target.value)} type="number" style={{ width: "100%", background: TOKENS.surface2, border: `1px solid ${TOKENS.line}`, color: TOKENS.chalk, borderRadius: 10, padding: 11, marginTop: 4, marginBottom: 12 }} />
-            <label style={{ color: TOKENS.muted, fontSize: 11 }}>მიზანი</label>
+          <div style={{ ...card, border: `1px solid ${TOKENS.ember}`, padding: 20, marginBottom: 22, maxWidth: 460 }}>
+            <div style={{ color: TOKENS.chalk, fontFamily: "'Oswald', sans-serif", fontSize: 15, marginBottom: 14 }}>დავაყენოთ შენი მიზნები</div>
+
+            <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ color: TOKENS.muted, fontSize: 11 }}>წონა (კგ)</label>
+                <input className="bf-input" value={weightInput} onChange={(e) => setWeightInput(e.target.value)} type="number" style={{ width: "100%", background: TOKENS.surface2, border: `1px solid ${TOKENS.line}`, color: TOKENS.chalk, borderRadius: 10, padding: 11, marginTop: 4 }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ color: TOKENS.muted, fontSize: 11 }}>სიმაღლე (სმ)</label>
+                <input className="bf-input" value={heightInput} onChange={(e) => setHeightInput(e.target.value)} type="number" style={{ width: "100%", background: TOKENS.surface2, border: `1px solid ${TOKENS.line}`, color: TOKENS.chalk, borderRadius: 10, padding: 11, marginTop: 4 }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ color: TOKENS.muted, fontSize: 11 }}>ასაკი</label>
+                <input className="bf-input" value={ageInput} onChange={(e) => setAgeInput(e.target.value)} type="number" style={{ width: "100%", background: TOKENS.surface2, border: `1px solid ${TOKENS.line}`, color: TOKENS.chalk, borderRadius: 10, padding: 11, marginTop: 4 }} />
+              </div>
+            </div>
+
+            <label style={{ color: TOKENS.muted, fontSize: 11 }}>სქესი (ზუსტი გამოთვლისთვის)</label>
             <div style={{ display: "flex", gap: 6, marginTop: 6, marginBottom: 14 }}>
-              {[{ k: "cut", l: "ცხიმის დაწვა" }, { k: "recomp", l: "რეკომპოზიცია" }, { k: "muscle", l: "კუნთის მატება" }].map((o) => (
-                <button key={o.k} onClick={() => setGoalInput(o.k)} className="bf-btn" style={{ flex: 1, fontSize: 11, padding: "9px 4px", borderRadius: 9, border: `1px solid ${goalInput === o.k ? TOKENS.ember : TOKENS.line}`, background: goalInput === o.k ? "rgba(228,87,46,0.15)" : "transparent", color: goalInput === o.k ? TOKENS.ember : TOKENS.muted }}>
+              {[{ k: "male", l: "მამრობითი" }, { k: "female", l: "მდედრობითი" }].map((o) => (
+                <button key={o.k} onClick={() => setGenderInput(o.k)} className="bf-btn" style={{ flex: 1, fontSize: 12, padding: "9px 4px", borderRadius: 9, border: `1px solid ${genderInput === o.k ? TOKENS.ember : TOKENS.line}`, background: genderInput === o.k ? "rgba(184,121,74,0.15)" : "transparent", color: genderInput === o.k ? TOKENS.ember : TOKENS.muted }}>
                   {o.l}
                 </button>
               ))}
             </div>
+
+            <label style={{ color: TOKENS.muted, fontSize: 11 }}>მიზანი</label>
+            <div style={{ display: "flex", gap: 6, marginTop: 6, marginBottom: 16 }}>
+              {[{ k: "cut", l: "ცხიმის დაწვა" }, { k: "recomp", l: "რეკომპოზიცია" }, { k: "muscle", l: "კუნთის მატება" }].map((o) => (
+                <button key={o.k} onClick={() => setGoalInput(o.k)} className="bf-btn" style={{ flex: 1, fontSize: 11, padding: "9px 4px", borderRadius: 9, border: `1px solid ${goalInput === o.k ? TOKENS.ember : TOKENS.line}`, background: goalInput === o.k ? "rgba(184,121,74,0.15)" : "transparent", color: goalInput === o.k ? TOKENS.ember : TOKENS.muted }}>
+                  {o.l}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ background: TOKENS.surface2, borderRadius: 12, padding: 14, marginBottom: 16 }}>
+              <div style={{ display: "flex", gap: 18, marginBottom: 10 }}>
+                <div><div style={{ color: TOKENS.ember, fontFamily: "'Oswald', sans-serif", fontSize: 18 }}>{goalPreview.calories}</div><div style={{ color: TOKENS.muted, fontSize: 10, textTransform: "uppercase" }}>კკალ</div></div>
+                <div><div style={{ color: TOKENS.chalk, fontFamily: "'Oswald', sans-serif", fontSize: 18 }}>{goalPreview.protein}გ</div><div style={{ color: TOKENS.muted, fontSize: 10, textTransform: "uppercase" }}>ცილა</div></div>
+                <div><div style={{ color: TOKENS.amber, fontFamily: "'Oswald', sans-serif", fontSize: 18 }}>{goalPreview.water}</div><div style={{ color: TOKENS.muted, fontSize: 10, textTransform: "uppercase" }}>მლ წყალი</div></div>
+              </div>
+              <div style={{ color: TOKENS.muted, fontSize: 12, lineHeight: 1.6 }}>{goalPreview.rationale}</div>
+            </div>
+
             <button className="bf-btn" onClick={finishOnboard} style={{ width: "100%", background: TOKENS.ember, color: TOKENS.chalk, border: "none", borderRadius: 10, padding: "11px 0", fontFamily: "'Oswald', sans-serif", fontSize: 13 }}>
               შენახვა
             </button>
@@ -415,7 +486,7 @@ export default function Dashboard() {
               {tipLoading ? <Loader2 size={14} className="animate-spin" /> : <MessageCircle size={14} />}
               {tipLoading ? "ვთხოვ მწვრთნელს..." : "მწვრთნელის რჩევა"}
             </button>
-            {tip && <div style={{ ...card, background: "rgba(228,87,46,0.08)", border: `1px solid ${TOKENS.ember}`, padding: 14, marginTop: 10, color: TOKENS.chalk, fontSize: 13 }}>{tip}</div>}
+            {tip && <div style={{ ...card, background: "rgba(184,121,74,0.08)", border: `1px solid ${TOKENS.ember}`, padding: 14, marginTop: 10, color: TOKENS.chalk, fontSize: 13 }}>{tip}</div>}
           </div>
         )}
       </div>

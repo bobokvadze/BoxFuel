@@ -14,11 +14,11 @@ export default function Ring({ value, goal, size = 96, stroke = 9, color, label,
             const a = (i / 12) * 2 * Math.PI - Math.PI / 2;
             const x1 = size / 2 + (r + stroke / 2 + 2) * Math.cos(a);
             const y1 = size / 2 + (r + stroke / 2 + 2) * Math.sin(a);
-            const x2 = size / 2 + (r + stroke / 2 + 6) * Math.cos(a);
-            const y2 = size / 2 + (r + stroke / 2 + 6) * Math.sin(a);
-            return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={TOKENS.line} strokeWidth={2} strokeLinecap="round" />;
+            const x2 = size / 2 + (r + stroke / 2 + 5) * Math.cos(a);
+            const y2 = size / 2 + (r + stroke / 2 + 5) * Math.sin(a);
+            return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={TOKENS.line} strokeWidth={1.5} strokeLinecap="round" opacity={0.7} />;
           })}
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={TOKENS.surface2} strokeWidth={stroke} />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={TOKENS.surface2} strokeWidth={stroke - 2} />
           <circle
             cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
             strokeDasharray={`${c * pct} ${c}`} strokeLinecap="round"

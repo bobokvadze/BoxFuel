@@ -4,7 +4,7 @@
 html, body {
   margin: 0;
   padding: 0;
-  background: #100F0C;
+  background: #0E0D0B;
   font-family: 'Inter', sans-serif;
 }
 .bf-btn {
@@ -16,7 +16,7 @@ html, body {
 }
 .bf-input:focus {
   outline: none;
-  border-color: #E4572E;
+  border-color: #B8794A;
 }
 /* Prevent iOS Safari auto-zoom on focus by keeping form fields at 16px+ */
 input, select, textarea {
@@ -54,9 +54,9 @@ input, select, textarea {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(28, 26, 21, 0.94);
+    background: rgba(23, 21, 18, 0.94);
     backdrop-filter: blur(14px);
-    border-top: 1px solid #38352C;
+    border-top: 1px solid #2A2622;
     padding-bottom: env(safe-area-inset-bottom, 0px);
     z-index: 30;
   }
