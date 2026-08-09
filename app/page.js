@@ -284,7 +284,7 @@ export default function Dashboard() {
   return (
     <div style={{ background: TOKENS.bg, minHeight: "100vh" }}>
       {/* Header */}
-      <div style={{ borderBottom: `1px solid ${TOKENS.line}`, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, position: "sticky", top: 0, background: "rgba(14,13,11,0.92)", backdropFilter: "blur(10px)", zIndex: 20 }}>
+      <div style={{ borderBottom: `1px solid ${TOKENS.line}`, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, position: "sticky", top: 0, background: "rgba(11,14,20,0.92)", backdropFilter: "blur(10px)", zIndex: 20 }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "'Oswald', sans-serif", fontSize: 19, color: TOKENS.chalk, letterSpacing: 1, whiteSpace: "nowrap" }}>
           <Target size={19} color={TOKENS.ember} /> FORMA
         </span>
@@ -339,7 +339,7 @@ export default function Dashboard() {
             <label style={{ color: TOKENS.muted, fontSize: 11 }}>სქესი (ზუსტი გამოთვლისთვის)</label>
             <div style={{ display: "flex", gap: 6, marginTop: 6, marginBottom: 14 }}>
               {[{ k: "male", l: "მამრობითი" }, { k: "female", l: "მდედრობითი" }].map((o) => (
-                <button key={o.k} onClick={() => setGenderInput(o.k)} className="bf-btn" style={{ flex: 1, fontSize: 12, padding: "9px 4px", borderRadius: 9, border: `1px solid ${genderInput === o.k ? TOKENS.ember : TOKENS.line}`, background: genderInput === o.k ? "rgba(184,121,74,0.15)" : "transparent", color: genderInput === o.k ? TOKENS.ember : TOKENS.muted }}>
+                <button key={o.k} onClick={() => setGenderInput(o.k)} className="bf-btn" style={{ flex: 1, fontSize: 12, padding: "9px 4px", borderRadius: 9, border: `1px solid ${genderInput === o.k ? TOKENS.ember : TOKENS.line}`, background: genderInput === o.k ? "rgba(185,155,77,0.15)" : "transparent", color: genderInput === o.k ? TOKENS.ember : TOKENS.muted }}>
                   {o.l}
                 </button>
               ))}
@@ -348,7 +348,7 @@ export default function Dashboard() {
             <label style={{ color: TOKENS.muted, fontSize: 11 }}>ვარჯიშობ?</label>
             <div style={{ display: "flex", gap: 6, marginTop: 6, marginBottom: 14 }}>
               {[{ k: true, l: "დიახ" }, { k: false, l: "არა / არარეგულარულად" }].map((o) => (
-                <button key={String(o.k)} onClick={() => setTrainsInput(o.k)} className="bf-btn" style={{ flex: 1, fontSize: 12, padding: "9px 4px", borderRadius: 9, border: `1px solid ${trainsInput === o.k ? TOKENS.ember : TOKENS.line}`, background: trainsInput === o.k ? "rgba(184,121,74,0.15)" : "transparent", color: trainsInput === o.k ? TOKENS.ember : TOKENS.muted }}>
+                <button key={String(o.k)} onClick={() => setTrainsInput(o.k)} className="bf-btn" style={{ flex: 1, fontSize: 12, padding: "9px 4px", borderRadius: 9, border: `1px solid ${trainsInput === o.k ? TOKENS.ember : TOKENS.line}`, background: trainsInput === o.k ? "rgba(185,155,77,0.15)" : "transparent", color: trainsInput === o.k ? TOKENS.ember : TOKENS.muted }}>
                   {o.l}
                 </button>
               ))}
@@ -374,7 +374,7 @@ export default function Dashboard() {
             <label style={{ color: TOKENS.muted, fontSize: 11 }}>მიზანი</label>
             <div style={{ display: "flex", gap: 6, marginTop: 6, marginBottom: 16 }}>
               {[{ k: "cut", l: "ცხიმის დაწვა" }, { k: "recomp", l: "რეკომპოზიცია" }, { k: "muscle", l: "კუნთის მატება" }].map((o) => (
-                <button key={o.k} onClick={() => setGoalInput(o.k)} className="bf-btn" style={{ flex: 1, fontSize: 11, padding: "9px 4px", borderRadius: 9, border: `1px solid ${goalInput === o.k ? TOKENS.ember : TOKENS.line}`, background: goalInput === o.k ? "rgba(184,121,74,0.15)" : "transparent", color: goalInput === o.k ? TOKENS.ember : TOKENS.muted }}>
+                <button key={o.k} onClick={() => setGoalInput(o.k)} className="bf-btn" style={{ flex: 1, fontSize: 11, padding: "9px 4px", borderRadius: 9, border: `1px solid ${goalInput === o.k ? TOKENS.ember : TOKENS.line}`, background: goalInput === o.k ? "rgba(185,155,77,0.15)" : "transparent", color: goalInput === o.k ? TOKENS.ember : TOKENS.muted }}>
                   {o.l}
                 </button>
               ))}
@@ -409,7 +409,7 @@ export default function Dashboard() {
             </div>
             <div>
               <div style={{ color: TOKENS.chalk, fontFamily: "'Oswald', sans-serif", fontSize: 13, letterSpacing: 1, marginBottom: 14, textTransform: "uppercase" }}>დღევანდელი ჩანაწერები</div>
-              {log.foods.length === 0 && <div style={{ color: TOKENS.muted, fontSize: 13 }}>ჯერ არაფერი დამატებული — გადადი „სკანი“-ზე.</div>}
+              {log.foods.length === 0 && <div style={{ color: TOKENS.muted, fontSize: 13 }}>ჯერ არაფერი დამატებული — გადადი და დაასკანერე.</div>}
               {log.foods.map((f, i) => (
                 <div key={i} style={{ ...card, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 15px", marginBottom: 9 }}>
                   <div>
@@ -425,7 +425,7 @@ export default function Dashboard() {
 
         {tab === "scan" && (
           <div style={{ maxWidth: 460 }}>
-            <div style={{ color: TOKENS.chalk, fontFamily: "'Oswald', sans-serif", fontSize: 16, marginBottom: 16 }}>საკვების სკანირება</div>
+            <div style={{ color: TOKENS.chalk, fontFamily: "'Oswald', sans-serif", fontSize: 16, marginBottom: 16 }}>საკვების დასკანირება</div>
             {!scanImg && (
               <button className="bf-btn" onClick={() => fileRef.current?.click()} style={{ width: "100%", height: 200, ...card, border: `2px dashed ${TOKENS.line}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
                 <Camera size={30} color={TOKENS.ember} />
@@ -473,9 +473,9 @@ export default function Dashboard() {
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
               <Ring value={log.water} goal={goals.water} color={TOKENS.amber} label="დღეს" sub="მლ" size={150} />
             </div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-              {[250, 500, 750].map((ml) => (
-                <button key={ml} className="bf-btn" onClick={() => addWater(ml)} style={{ flex: 1, ...card, padding: "15px 0", color: TOKENS.chalk, fontSize: 13, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
+              {[250, 330, 500, 750].map((ml) => (
+                <button key={ml} className="bf-btn" onClick={() => addWater(ml)} style={{ flex: "1 1 40%", ...card, padding: "15px 0", color: TOKENS.chalk, fontSize: 13, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
                   <Droplet size={16} color={TOKENS.amber} /> +{ml}მლ
                 </button>
               ))}
@@ -526,7 +526,7 @@ export default function Dashboard() {
               {tipLoading ? <Loader2 size={14} className="animate-spin" /> : <MessageCircle size={14} />}
               {tipLoading ? "ვთხოვ მწვრთნელს..." : "მწვრთნელის რჩევა"}
             </button>
-            {tip && <div style={{ ...card, background: "rgba(184,121,74,0.08)", border: `1px solid ${TOKENS.ember}`, padding: 14, marginTop: 10, color: TOKENS.chalk, fontSize: 13 }}>{tip}</div>}
+            {tip && <div style={{ ...card, background: "rgba(185,155,77,0.08)", border: `1px solid ${TOKENS.ember}`, padding: 14, marginTop: 10, color: TOKENS.chalk, fontSize: 13 }}>{tip}</div>}
           </div>
         )}
       </div>
