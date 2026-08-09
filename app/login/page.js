@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 import { TOKENS } from "../../lib/tokens";
+import { Target } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -55,7 +56,9 @@ export default function LoginPage() {
     >
       <div style={{ width: "100%", maxWidth: 380 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 28 }}>
-          <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 26, color: TOKENS.chalk, letterSpacing: 1 }}>🔔 BOXFUEL</span>
+          <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 26, color: TOKENS.chalk, letterSpacing: 1, display: "flex", alignItems: "center", gap: 10 }}>
+            <Target size={24} color={TOKENS.ember} /> FORMA
+          </span>
         </div>
         <div style={{ background: TOKENS.surface, border: `1px solid ${TOKENS.line}`, borderRadius: 20, padding: 26, boxShadow: "0 12px 40px -12px rgba(0,0,0,0.5)" }}>
           <div style={{ display: "flex", gap: 6, marginBottom: 20, background: TOKENS.surface2, borderRadius: 10, padding: 4 }}>

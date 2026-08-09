@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Droplet, Dumbbell, MessageCircle, Loader2, Flame, Beef, X, Check, LogOut, User, BarChart3 } from "lucide-react";
+import { Camera, Droplet, Dumbbell, MessageCircle, Loader2, Flame, Beef, X, Check, LogOut, User, BarChart3, Target } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
 import { TOKENS, todayKey, computeGoals } from "../lib/tokens";
 import Ring from "../components/Ring";
@@ -64,6 +64,10 @@ export default function Dashboard() {
   const [ageInput, setAgeInput] = useState("25");
   const [genderInput, setGenderInput] = useState("male");
   const [goalInput, setGoalInput] = useState("recomp");
+  const [trainsInput, setTrainsInput] = useState(true);
+  const [sportInput, setSportInput] = useState("");
+  const [daysInput, setDaysInput] = useState("3");
+  const [hoursInput, setHoursInput] = useState("1");
 
   const [scanImg, setScanImg] = useState(null);
   const [scanResult, setScanResult] = useState(null);
@@ -105,6 +109,10 @@ export default function Dashboard() {
       if (goalRow.height) setHeightInput(String(goalRow.height));
       if (goalRow.age) setAgeInput(String(goalRow.age));
       if (goalRow.gender) setGenderInput(goalRow.gender);
+      if (typeof goalRow.trains === "boolean") setTrainsInput(goalRow.trains);
+      if (goalRow.sport_type) setSportInput(goalRow.sport_type);
+      if (goalRow.days_per_week) setDaysInput(String(goalRow.days_per_week));
+      if (goalRow.session_hours) setHoursInput(String(goalRow.session_hours));
       setWeightInput(String(goalRow.weight));
     } else setOnboard(true);
 
@@ -153,12 +161,16 @@ export default function Dashboard() {
   };
 
   const finishOnboard = () => {
-    const preview = computeGoals({ weight: weightInput, height: heightInput, age: ageInput, gender: genderInput, goal: goalInput });
+    const preview = computeGoals({ weight: weightInput, height: heightInput, age: ageInput, gender: genderInput, goal: goalInput, trains: trainsInput, daysPerWeek: daysInput, sessionHours: hoursInput });
     saveGoals({
       weight: parseFloat(weightInput) || 75,
       height: parseFloat(heightInput) || 175,
       age: parseFloat(ageInput) || 25,
       gender: genderInput,
+      trains: trainsInput,
+      sport_type: trainsInput ? sportInput.trim() : "",
+      days_per_week: trainsInput ? parseFloat(daysInput) || 0 : 0,
+      session_hours: trainsInput ? parseFloat(hoursInput) || 0 : 0,
       calories: preview.calories,
       protein: preview.protein,
       water: preview.water,
@@ -166,7 +178,7 @@ export default function Dashboard() {
     setOnboard(false);
   };
 
-  const goalPreview = computeGoals({ weight: weightInput, height: heightInput, age: ageInput, gender: genderInput, goal: goalInput });
+  const goalPreview = computeGoals({ weight: weightInput, height: heightInput, age: ageInput, gender: genderInput, goal: goalInput, trains: trainsInput, daysPerWeek: daysInput, sessionHours: hoursInput });
 
   const totals = log.foods.reduce((a, f) => ({ calories: a.calories + f.calories, protein: a.protein + f.protein }), { calories: 0, protein: 0 });
 
@@ -193,7 +205,7 @@ export default function Dashboard() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: scanImg.b64, mediaType: scanImg.mediaType }),
+        body: JSON.stringify({ imageBase64: scanImg.b64, mediaType: scanImg.mediaType, sportType: trainsInput ? sportInput : "" }),
       });
       const parsed = await res.json();
       if (!res.ok || parsed.error) {
@@ -234,7 +246,7 @@ export default function Dashboard() {
       const res = await fetch("/api/tip", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goals, totals, water: log.water }),
+        body: JSON.stringify({ goals, totals, water: log.water, sportType: trainsInput ? sportInput : "" }),
       });
       const data = await res.json();
       setTip(data.tip || "");
@@ -273,7 +285,9 @@ export default function Dashboard() {
     <div style={{ background: TOKENS.bg, minHeight: "100vh" }}>
       {/* Header */}
       <div style={{ borderBottom: `1px solid ${TOKENS.line}`, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, position: "sticky", top: 0, background: "rgba(14,13,11,0.92)", backdropFilter: "blur(10px)", zIndex: 20 }}>
-        <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 19, color: TOKENS.chalk, letterSpacing: 0.5, whiteSpace: "nowrap" }}>🔔 BOXFUEL</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "'Oswald', sans-serif", fontSize: 19, color: TOKENS.chalk, letterSpacing: 1, whiteSpace: "nowrap" }}>
+          <Target size={19} color={TOKENS.ember} /> FORMA
+        </span>
 
         <div className="bf-topnav" style={{ gap: 4, background: TOKENS.surface, borderRadius: 10, padding: 4 }}>
           {NAV.map((t) => (
@@ -293,7 +307,7 @@ export default function Dashboard() {
             <User size={13} /> {user?.email}
           </div>
           <span style={{ color: TOKENS.ember, fontSize: 11, fontFamily: "'Oswald', sans-serif", letterSpacing: 0.5, border: `1px solid ${TOKENS.ember}`, borderRadius: 20, padding: "3px 9px", whiteSpace: "nowrap" }}>
-            R.{rounds}
+            დღე {rounds}
           </span>
           <button onClick={logout} className="bf-btn" style={{ background: "none", border: `1px solid ${TOKENS.line}`, borderRadius: 8, padding: 7, color: TOKENS.muted, display: "flex" }}>
             <LogOut size={14} />
@@ -330,6 +344,32 @@ export default function Dashboard() {
                 </button>
               ))}
             </div>
+
+            <label style={{ color: TOKENS.muted, fontSize: 11 }}>ვარჯიშობ?</label>
+            <div style={{ display: "flex", gap: 6, marginTop: 6, marginBottom: 14 }}>
+              {[{ k: true, l: "დიახ" }, { k: false, l: "არა / არარეგულარულად" }].map((o) => (
+                <button key={String(o.k)} onClick={() => setTrainsInput(o.k)} className="bf-btn" style={{ flex: 1, fontSize: 12, padding: "9px 4px", borderRadius: 9, border: `1px solid ${trainsInput === o.k ? TOKENS.ember : TOKENS.line}`, background: trainsInput === o.k ? "rgba(184,121,74,0.15)" : "transparent", color: trainsInput === o.k ? TOKENS.ember : TOKENS.muted }}>
+                  {o.l}
+                </button>
+              ))}
+            </div>
+
+            {trainsInput && (
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ color: TOKENS.muted, fontSize: 11 }}>რას ვარჯიშობ (სურვილისამებრ)</label>
+                <input className="bf-input" value={sportInput} onChange={(e) => setSportInput(e.target.value)} placeholder="მაგ. ბოქსი, წონები, სირბილი..." style={{ width: "100%", background: TOKENS.surface2, border: `1px solid ${TOKENS.line}`, color: TOKENS.chalk, borderRadius: 10, padding: 11, marginTop: 4, marginBottom: 12 }} />
+                <div style={{ display: "flex", gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ color: TOKENS.muted, fontSize: 11 }}>დღე/კვირაში</label>
+                    <input className="bf-input" value={daysInput} onChange={(e) => setDaysInput(e.target.value)} type="number" min="0" max="7" style={{ width: "100%", background: TOKENS.surface2, border: `1px solid ${TOKENS.line}`, color: TOKENS.chalk, borderRadius: 10, padding: 11, marginTop: 4 }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ color: TOKENS.muted, fontSize: 11 }}>საათი/ვარჯიშზე</label>
+                    <input className="bf-input" value={hoursInput} onChange={(e) => setHoursInput(e.target.value)} type="number" step="0.5" min="0" style={{ width: "100%", background: TOKENS.surface2, border: `1px solid ${TOKENS.line}`, color: TOKENS.chalk, borderRadius: 10, padding: 11, marginTop: 4 }} />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <label style={{ color: TOKENS.muted, fontSize: 11 }}>მიზანი</label>
             <div style={{ display: "flex", gap: 6, marginTop: 6, marginBottom: 16 }}>

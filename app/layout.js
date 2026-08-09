@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "BoxFuel",
-  description: "საკვების, ცილის და წყლის ტრეკერი მებოქსეებისთვის",
+  title: "FORMA",
+  description: "საკვების, ცილის და წყლის ტრეკერი — ნებისმიერი სპორტისთვის",
 };
 
 export default function RootLayout({ children }) {
