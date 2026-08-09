@@ -1,0 +1,30 @@
+* {
+  box-sizing: border-box;
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #100F0C;
+  font-family: 'Inter', sans-serif;
+}
+.bf-btn {
+  transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+  cursor: pointer;
+}
+.bf-btn:active {
+  transform: scale(0.97);
+}
+.bf-input:focus {
+  outline: none;
+  border-color: #E4572E;
+}
+.bf-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 22px;
+}
+@media (min-width: 860px) {
+  .bf-grid {
+    grid-template-columns: 320px 1fr;
+  }
+}
