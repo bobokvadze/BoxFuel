@@ -252,8 +252,9 @@ export default function Dashboard() {
       });
       const parsed = await res.json();
       if (!res.ok || parsed.error) {
-        console.error("analyze error:", parsed.error);
-        setScanError("ვერ მოხერხდა ამოცნობა — სცადე უფრო ახლო/ნათელი ფოტო, ან სცადე ერთი წუთის შემდეგ.");
+        console.error("analyze error:", res.status, parsed);
+        const detail = parsed.error || `HTTP ${res.status}`;
+        setScanError(`ვერ მოხერხდა ამოცნობა — სცადე უფრო ახლო/ნათელი ფოტო, ან სცადე ერთი წუთის შემდეგ. (დეტალი: ${detail})`);
         return;
       }
       setScanResult(parsed);

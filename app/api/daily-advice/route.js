@@ -10,11 +10,11 @@ export async function POST(req) {
 
   const prompt = `You are a nutrition coach for an athlete training in: ${sport}. Their daily targets: ${goals.calories} kcal, ${goals.protein}g protein, ${goals.water}ml water. So far today: ${totals.calories} kcal eaten, ${totals.protein}g protein eaten, ${water}ml water drunk. Remaining: ${calRemain} kcal, ${protRemain}g protein, ${waterRemain}ml water (negative remaining calories means they're over target). Write 1 to 3 short, specific, actionable tips in Georgian language about what to do next today, based on what's actually remaining or over. If everything looks on track, write one short encouraging line instead. Respond with ONLY strict JSON, no markdown, in this exact shape: {"tips":["tip 1 in Georgian", "tip 2 in Georgian"]}. Each tip should be one short sentence.`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: { response_mime_type: "application/json" },

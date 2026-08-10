@@ -16,11 +16,11 @@ export async function POST(req) {
 
   const prompt = `You are a knowledgeable, clear nutrition coach. In Georgian language, explain briefly why these daily targets fit this person's goal. Goal: ${goalLabel}. Training: ${trainingLine} Estimated maintenance calories (TDEE): ~${tdee} kcal. Assigned daily targets: ${calories} kcal, ${protein}g protein, ${water}ml water. Write exactly 2-3 short sentences explaining the reasoning — why this calorie level relative to TDEE, why this protein amount, and a brief note about the water target. Encouraging, concrete tone. Respond with ONLY the explanation text in Georgian, no preamble, no markdown, no headers.`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY },
     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
   });
 
