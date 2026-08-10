@@ -9,7 +9,7 @@ export async function POST(req) {
 
   const sport = sportType && sportType.trim() ? sportType.trim() : "ფიტნესი/სპორტი";
   const prompt =
-    `You're a nutrition tracker for an athlete (their training: ${sport}) doing body recomposition. Look at this food photo and identify the food(s) and estimate a realistic serving. Respond with ONLY strict JSON, no markdown, no commentary, in this exact shape: {"name":"short food name","calories":number,"protein_g":number,"carbs_g":number,"fat_g":number,"note":"one short practical sentence in Georgian about how this fits a cutting/recomp diet"}`;
+    `You're a nutrition tracker for an athlete (their training: ${sport}) doing body recomposition. Look at this food photo and identify the food(s) and estimate a realistic serving. Respond with ONLY strict JSON, no markdown, no commentary, in this exact shape: {"name":"short food name, written in Georgian (ქართული ენა)","calories":number,"protein_g":number,"carbs_g":number,"fat_g":number,"note":"one short practical sentence, written in Georgian (ქართული ენა), about how this fits a cutting/recomp diet"}. Every text field (name and note) must be written in Georgian, not English.`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
 

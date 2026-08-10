@@ -57,7 +57,7 @@ export default function LoginPage() {
       <div style={{ width: "100%", maxWidth: 380 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 28 }}>
           <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 26, color: TOKENS.chalk, letterSpacing: 1, display: "flex", alignItems: "center", gap: 10 }}>
-            <Target size={24} color={TOKENS.ember} /> FORMA
+            <Target size={24} color={TOKENS.ember} /> FormAI
           </span>
         </div>
         <div style={{ background: TOKENS.surface, border: `1px solid ${TOKENS.line}`, borderRadius: 20, padding: 26, boxShadow: "0 12px 40px -12px rgba(0,0,0,0.5)" }}>

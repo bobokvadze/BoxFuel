@@ -180,6 +180,40 @@ export default function Dashboard() {
 
   const goalPreview = computeGoals({ weight: weightInput, height: heightInput, age: ageInput, gender: genderInput, goal: goalInput, trains: trainsInput, daysPerWeek: daysInput, sessionHours: hoursInput });
 
+  const [aiRationale, setAiRationale] = useState("");
+  const [aiRationaleLoading, setAiRationaleLoading] = useState(false);
+
+  useEffect(() => {
+    if (!onboard) return;
+    setAiRationaleLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/goal-advice", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            calories: goalPreview.calories,
+            protein: goalPreview.protein,
+            water: goalPreview.water,
+            tdee: goalPreview.tdee,
+            goal: goalInput,
+            sport: trainsInput ? sportInput.trim() : "",
+            trains: trainsInput,
+            weeklyHours: goalPreview.weeklyHours,
+          }),
+        });
+        const data = await res.json();
+        setAiRationale(data.rationale || "");
+      } catch (e) {
+        setAiRationale("");
+      } finally {
+        setAiRationaleLoading(false);
+      }
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onboard, weightInput, heightInput, ageInput, genderInput, goalInput, trainsInput, sportInput, daysInput, hoursInput]);
+
   const totals = log.foods.reduce((a, f) => ({ calories: a.calories + f.calories, protein: a.protein + f.protein }), { calories: 0, protein: 0 });
 
   const addWater = (ml) => persistLog({ ...log, water: Math.max(0, log.water + ml) });
@@ -246,7 +280,7 @@ export default function Dashboard() {
       const res = await fetch("/api/tip", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goals, totals, water: log.water, sportType: trainsInput ? sportInput : "" }),
+        body: JSON.stringify({ goals, totals, water: log.water, sportType: trainsInput ? sportInput : "", currentTime: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }),
       });
       const data = await res.json();
       setTip(data.tip || "");
@@ -286,7 +320,7 @@ export default function Dashboard() {
       {/* Header */}
       <div style={{ borderBottom: `1px solid ${TOKENS.line}`, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, position: "sticky", top: 0, background: "rgba(11,14,20,0.92)", backdropFilter: "blur(10px)", zIndex: 20 }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "'Oswald', sans-serif", fontSize: 19, color: TOKENS.chalk, letterSpacing: 1, whiteSpace: "nowrap" }}>
-          <Target size={19} color={TOKENS.ember} /> FORMA
+          <Target size={19} color={TOKENS.ember} /> FormAI
         </span>
 
         <div className="bf-topnav" style={{ gap: 4, background: TOKENS.surface, borderRadius: 10, padding: 4 }}>
@@ -386,7 +420,9 @@ export default function Dashboard() {
                 <div><div style={{ color: TOKENS.chalk, fontFamily: "'Oswald', sans-serif", fontSize: 18 }}>{goalPreview.protein}გ</div><div style={{ color: TOKENS.muted, fontSize: 10, textTransform: "uppercase" }}>ცილა</div></div>
                 <div><div style={{ color: TOKENS.amber, fontFamily: "'Oswald', sans-serif", fontSize: 18 }}>{goalPreview.water}</div><div style={{ color: TOKENS.muted, fontSize: 10, textTransform: "uppercase" }}>მლ წყალი</div></div>
               </div>
-              <div style={{ color: TOKENS.muted, fontSize: 12, lineHeight: 1.6 }}>{goalPreview.rationale}</div>
+              <div style={{ color: TOKENS.muted, fontSize: 12, lineHeight: 1.6 }}>
+                {aiRationaleLoading && !aiRationale ? "Gemini წერს ახსნას..." : aiRationale || "..."}
+              </div>
             </div>
 
             <button className="bf-btn" onClick={finishOnboard} style={{ width: "100%", background: TOKENS.ember, color: TOKENS.chalk, border: "none", borderRadius: 10, padding: "11px 0", fontFamily: "'Oswald', sans-serif", fontSize: 13 }}>
@@ -409,7 +445,7 @@ export default function Dashboard() {
             </div>
             <div>
               <div style={{ color: TOKENS.chalk, fontFamily: "'Oswald', sans-serif", fontSize: 13, letterSpacing: 1, marginBottom: 14, textTransform: "uppercase" }}>დღევანდელი ჩანაწერები</div>
-              {log.foods.length === 0 && <div style={{ color: TOKENS.muted, fontSize: 13 }}>ჯერ არაფერი დამატებული — გადადი და დაასკანერე.</div>}
+              {log.foods.length === 0 && <div style={{ color: TOKENS.muted, fontSize: 13 }}>ჯერ არაფერი დამატებული — გადადი და დაასკანირე.</div>}
               {log.foods.map((f, i) => (
                 <div key={i} style={{ ...card, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 15px", marginBottom: 9 }}>
                   <div>
@@ -480,9 +516,14 @@ export default function Dashboard() {
                 </button>
               ))}
             </div>
-            <button className="bf-btn" onClick={() => addWater(-250)} style={{ width: "100%", background: "transparent", border: `1px solid ${TOKENS.line}`, borderRadius: 10, padding: "9px 0", color: TOKENS.muted, fontSize: 12 }}>
-              −250მლ (შესწორება)
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="bf-btn" onClick={() => addWater(-250)} style={{ flex: 1, background: "transparent", border: `1px solid ${TOKENS.line}`, borderRadius: 10, padding: "9px 0", color: TOKENS.muted, fontSize: 12 }}>
+                −250მლ
+              </button>
+              <button className="bf-btn" onClick={() => addWater(-330)} style={{ flex: 1, background: "transparent", border: `1px solid ${TOKENS.line}`, borderRadius: 10, padding: "9px 0", color: TOKENS.muted, fontSize: 12 }}>
+                −330მლ
+              </button>
+            </div>
           </div>
         )}
 

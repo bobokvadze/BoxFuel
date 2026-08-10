@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "FORMA",
+  title: "FormAI",
   description: "საკვების, ცილის და წყლის ტრეკერი — ნებისმიერი სპორტისთვის",
 };
 
