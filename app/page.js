@@ -182,10 +182,13 @@ export default function Dashboard() {
 
   const [aiRationale, setAiRationale] = useState("");
   const [aiRationaleLoading, setAiRationaleLoading] = useState(false);
+  const [aiRationaleError, setAiRationaleError] = useState(false);
+  const [aiRetryTick, setAiRetryTick] = useState(0);
 
   useEffect(() => {
     if (!onboard) return;
     setAiRationaleLoading(true);
+    setAiRationaleError(false);
     const t = setTimeout(async () => {
       try {
         const res = await fetch("/api/goal-advice", {
@@ -203,16 +206,22 @@ export default function Dashboard() {
           }),
         });
         const data = await res.json();
-        setAiRationale(data.rationale || "");
+        if (!res.ok || !data.rationale) {
+          console.error("goal-advice failed:", data.error || res.status);
+          setAiRationaleError(true);
+          return;
+        }
+        setAiRationale(data.rationale);
       } catch (e) {
-        setAiRationale("");
+        console.error("goal-advice request error:", e);
+        setAiRationaleError(true);
       } finally {
         setAiRationaleLoading(false);
       }
-    }, 700);
+    }, 800);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onboard, weightInput, heightInput, ageInput, genderInput, goalInput, trainsInput, sportInput, daysInput, hoursInput]);
+  }, [onboard, weightInput, heightInput, ageInput, genderInput, goalInput, trainsInput, sportInput, daysInput, hoursInput, aiRetryTick]);
 
   const totals = log.foods.reduce((a, f) => ({ calories: a.calories + f.calories, protein: a.protein + f.protein }), { calories: 0, protein: 0 });
 
@@ -298,10 +307,13 @@ export default function Dashboard() {
 
   const [dailyTips, setDailyTips] = useState([]);
   const [dailyTipsLoading, setDailyTipsLoading] = useState(false);
+  const [dailyTipsError, setDailyTipsError] = useState(false);
+  const [dailyRetryTick, setDailyRetryTick] = useState(0);
 
   useEffect(() => {
     if (tab !== "advice") return;
     setDailyTipsLoading(true);
+    setDailyTipsError(false);
     const t = setTimeout(async () => {
       try {
         const res = await fetch("/api/daily-advice", {
@@ -310,8 +322,16 @@ export default function Dashboard() {
           body: JSON.stringify({ goals, totals, water: log.water, sportType: trainsInput ? sportInput : "" }),
         });
         const data = await res.json();
-        setDailyTips(data.tips || []);
+        if (!res.ok || !data.tips || data.tips.length === 0) {
+          console.error("daily-advice failed:", data.error || res.status);
+          setDailyTipsError(true);
+          setDailyTips([]);
+          return;
+        }
+        setDailyTips(data.tips);
       } catch (e) {
+        console.error("daily-advice request error:", e);
+        setDailyTipsError(true);
         setDailyTips([]);
       } finally {
         setDailyTipsLoading(false);
@@ -319,7 +339,7 @@ export default function Dashboard() {
     }, 700);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, totals.calories, totals.protein, log.water, goals.calories, goals.protein, goals.water]);
+  }, [tab, totals.calories, totals.protein, log.water, goals.calories, goals.protein, goals.water, dailyRetryTick]);
 
   const maxStatCal = Math.max(1, ...stats.map((s) => s.calories));
 
@@ -439,8 +459,17 @@ export default function Dashboard() {
               <div style={{ color: TOKENS.muted, fontSize: 12, lineHeight: 1.6 }}>
                 {aiRationaleLoading
                   ? aiRationale
-                    ? "იცვლება დასკვნა — დასჭირდება რამდენიმე წამი..."
-                    : "Gemini წერს დასკვნას — დასჭირდება რამდენიმე წამი..."
+                    ? "იცვლება დასკვნა — მწვრთნელი წერს, დასჭირდება რამდენიმე წამი..."
+                    : "მწვრთნელი წერს დასკვნას — დასჭირდება რამდენიმე წამი..."
+                  : aiRationaleError
+                  ? (
+                    <span>
+                      დასკვნის დაწერა ვერ მოხერხდა.{" "}
+                      <button onClick={() => setAiRetryTick((x) => x + 1)} className="bf-btn" style={{ background: "none", border: "none", color: TOKENS.ember, textDecoration: "underline", padding: 0, fontSize: 12, cursor: "pointer" }}>
+                        თავიდან ცდა
+                      </button>
+                    </span>
+                  )
                   : aiRationale || "..."}
               </div>
             </div>
@@ -582,7 +611,7 @@ export default function Dashboard() {
             {dailyTipsLoading && (
               <div style={{ ...card, padding: 14, marginBottom: 8, color: TOKENS.muted, fontSize: 13, display: "flex", gap: 8, alignItems: "center" }}>
                 <Loader2 size={14} className="animate-spin" />
-                {dailyTips.length > 0 ? "განახლდება ანალიზი — დასჭირდება რამდენიმე წამი..." : "Gemini აანალიზებს დღეს — დასჭირდება რამდენიმე წამი..."}
+                {dailyTips.length > 0 ? "განახლდება ანალიზი — მწვრთნელი წერს, დასჭირდება რამდენიმე წამი..." : "მწვრთნელი აანალიზებს დღეს — დასჭირდება რამდენიმე წამი..."}
               </div>
             )}
             {!dailyTipsLoading &&
@@ -591,8 +620,13 @@ export default function Dashboard() {
                   <Dumbbell size={16} color={TOKENS.ember} style={{ flexShrink: 0, marginTop: 1 }} /> <span>{t}</span>
                 </div>
               ))}
-            {!dailyTipsLoading && dailyTips.length === 0 && (
-              <div style={{ ...card, padding: 14, marginBottom: 8, color: TOKENS.muted, fontSize: 13 }}>ანალიზი ვერ მოხერხდა — სცადე ტაბის ხელახლა გახსნა.</div>
+            {!dailyTipsLoading && dailyTipsError && (
+              <div style={{ ...card, padding: 14, marginBottom: 8, color: TOKENS.muted, fontSize: 13 }}>
+                ანალიზის მიღება ვერ მოხერხდა.{" "}
+                <button onClick={() => setDailyRetryTick((x) => x + 1)} className="bf-btn" style={{ background: "none", border: "none", color: TOKENS.ember, textDecoration: "underline", padding: 0, fontSize: 13, cursor: "pointer" }}>
+                  თავიდან ცდა
+                </button>
+              </div>
             )}
 
             <button className="bf-btn" onClick={getTip} disabled={tipLoading} style={{ width: "100%", marginTop: 12, background: "transparent", border: `1px solid ${TOKENS.ember}`, color: TOKENS.ember, borderRadius: 10, padding: "12px 0", fontFamily: "'Oswald', sans-serif", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
