@@ -296,14 +296,30 @@ export default function Dashboard() {
     router.push("/login");
   };
 
-  const ruleTips = [];
-  const calRemain = goals.calories - totals.calories;
-  const protRemain = goals.protein - totals.protein;
-  const waterRemain = goals.water - log.water;
-  if (protRemain > 20) ruleTips.push(`ცილა ჩამორჩება — კიდევ ~${Math.round(protRemain)}გ დაგჭირდება.`);
-  if (calRemain < 0) ruleTips.push(`კალორია გადაცემულია ~${Math.abs(Math.round(calRemain))}-ით — საღამო გაიმსუბუქე.`);
-  if (waterRemain > 500) ruleTips.push(`წყალი ჩამორჩება — კიდევ ${waterRemain}მლ დაგჭირდება.`);
-  if (ruleTips.length === 0) ruleTips.push("დღეს კარგად მიდიხარ — ასე გააგრძელე! 🥊");
+  const [dailyTips, setDailyTips] = useState([]);
+  const [dailyTipsLoading, setDailyTipsLoading] = useState(false);
+
+  useEffect(() => {
+    if (tab !== "advice") return;
+    setDailyTipsLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/daily-advice", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ goals, totals, water: log.water, sportType: trainsInput ? sportInput : "" }),
+        });
+        const data = await res.json();
+        setDailyTips(data.tips || []);
+      } catch (e) {
+        setDailyTips([]);
+      } finally {
+        setDailyTipsLoading(false);
+      }
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, totals.calories, totals.protein, log.water, goals.calories, goals.protein, goals.water]);
 
   const maxStatCal = Math.max(1, ...stats.map((s) => s.calories));
 
@@ -421,7 +437,11 @@ export default function Dashboard() {
                 <div><div style={{ color: TOKENS.amber, fontFamily: "'Oswald', sans-serif", fontSize: 18 }}>{goalPreview.water}</div><div style={{ color: TOKENS.muted, fontSize: 10, textTransform: "uppercase" }}>მლ წყალი</div></div>
               </div>
               <div style={{ color: TOKENS.muted, fontSize: 12, lineHeight: 1.6 }}>
-                {aiRationaleLoading && !aiRationale ? "Gemini წერს ახსნას..." : aiRationale || "..."}
+                {aiRationaleLoading
+                  ? aiRationale
+                    ? "იცვლება დასკვნა — დასჭირდება რამდენიმე წამი..."
+                    : "Gemini წერს დასკვნას — დასჭირდება რამდენიმე წამი..."
+                  : aiRationale || "..."}
               </div>
             </div>
 
@@ -445,7 +465,7 @@ export default function Dashboard() {
             </div>
             <div>
               <div style={{ color: TOKENS.chalk, fontFamily: "'Oswald', sans-serif", fontSize: 13, letterSpacing: 1, marginBottom: 14, textTransform: "uppercase" }}>დღევანდელი ჩანაწერები</div>
-              {log.foods.length === 0 && <div style={{ color: TOKENS.muted, fontSize: 13 }}>ჯერ არაფერი დამატებული — გადადი და დაასკანირე.</div>}
+              {log.foods.length === 0 && <div style={{ color: TOKENS.muted, fontSize: 13 }}>ჯერ არაფერია დამატებული — გადადი და დაასკანირე.</div>}
               {log.foods.map((f, i) => (
                 <div key={i} style={{ ...card, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 15px", marginBottom: 9 }}>
                   <div>
@@ -461,7 +481,7 @@ export default function Dashboard() {
 
         {tab === "scan" && (
           <div style={{ maxWidth: 460 }}>
-            <div style={{ color: TOKENS.chalk, fontFamily: "'Oswald', sans-serif", fontSize: 16, marginBottom: 16 }}>საკვების დასკანირება</div>
+            <div style={{ color: TOKENS.chalk, fontFamily: "'Oswald', sans-serif", fontSize: 16, marginBottom: 16 }}>საკვების სკანირება</div>
             {!scanImg && (
               <button className="bf-btn" onClick={() => fileRef.current?.click()} style={{ width: "100%", height: 200, ...card, border: `2px dashed ${TOKENS.line}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
                 <Camera size={30} color={TOKENS.ember} />
@@ -558,11 +578,23 @@ export default function Dashboard() {
         {tab === "advice" && (
           <div style={{ maxWidth: 480 }}>
             <div style={{ color: TOKENS.chalk, fontFamily: "'Oswald', sans-serif", fontSize: 16, marginBottom: 16 }}>რჩევები</div>
-            {ruleTips.map((t, i) => (
-              <div key={i} style={{ ...card, padding: 14, marginBottom: 8, color: TOKENS.chalk, fontSize: 13, display: "flex", gap: 8 }}>
-                <Dumbbell size={16} color={TOKENS.ember} style={{ flexShrink: 0, marginTop: 1 }} /> <span>{t}</span>
+
+            {dailyTipsLoading && (
+              <div style={{ ...card, padding: 14, marginBottom: 8, color: TOKENS.muted, fontSize: 13, display: "flex", gap: 8, alignItems: "center" }}>
+                <Loader2 size={14} className="animate-spin" />
+                {dailyTips.length > 0 ? "განახლდება ანალიზი — დასჭირდება რამდენიმე წამი..." : "Gemini აანალიზებს დღეს — დასჭირდება რამდენიმე წამი..."}
               </div>
-            ))}
+            )}
+            {!dailyTipsLoading &&
+              dailyTips.map((t, i) => (
+                <div key={i} style={{ ...card, padding: 14, marginBottom: 8, color: TOKENS.chalk, fontSize: 13, display: "flex", gap: 8 }}>
+                  <Dumbbell size={16} color={TOKENS.ember} style={{ flexShrink: 0, marginTop: 1 }} /> <span>{t}</span>
+                </div>
+              ))}
+            {!dailyTipsLoading && dailyTips.length === 0 && (
+              <div style={{ ...card, padding: 14, marginBottom: 8, color: TOKENS.muted, fontSize: 13 }}>ანალიზი ვერ მოხერხდა — სცადე ტაბის ხელახლა გახსნა.</div>
+            )}
+
             <button className="bf-btn" onClick={getTip} disabled={tipLoading} style={{ width: "100%", marginTop: 12, background: "transparent", border: `1px solid ${TOKENS.ember}`, color: TOKENS.ember, borderRadius: 10, padding: "12px 0", fontFamily: "'Oswald', sans-serif", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
               {tipLoading ? <Loader2 size={14} className="animate-spin" /> : <MessageCircle size={14} />}
               {tipLoading ? "ვთხოვ მწვრთნელს..." : "მწვრთნელის რჩევა"}
